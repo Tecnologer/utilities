@@ -1,5 +1,11 @@
-function validateForm(){
-	var fields=$('.main-content').find('input[type="text"],input[type="password"],select');
+/**
+ * @author [rey]
+ * @mod        [05/03/2016]
+ * @description [Validate fields]
+ * @param       {array}      fields       [Array of elements of the DOM to validate, Default: input[type="text"],input[type="password"],select,textarea in .main-content]
+ * @return      {boolean}    [Status of validation] */
+function validateForm(fields){
+	fields=fields || $('.main-content').find('input[type="text"],input[type="password"],input[type="number"],input[type="hidden"],select,textarea');
 	var language=Language_General[Culture];
 
 	for(var i=0;i<fields.length;i++){

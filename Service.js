@@ -6,6 +6,8 @@ if(!/^.*localhost.*$/.test(window.location.href))
 
 var language = Language_General[Culture]; 
 
+var last_connection_params = {};
+
 /** @type {Object} [Object Singleton for access to functions of Service] */
 window.connection = {
     invoke: getConection,
@@ -35,6 +37,20 @@ function getConection(controller, method, arguments, fncSuccess, async, dataType
     showWaitScreen = showWaitScreen == undefined ? true : showWaitScreen;
 	arguments = arguments || {};
 	dataType = dataType || 'json';
+
+    last_connection_params = {
+        _isUploadFile : false,
+        _controller : controller,  
+        _method : method,
+        _arguments : arguments,  
+        _fncSuccess : fncSuccess,  
+        _async : async,  
+        _dataType : dataType,  
+        _fncError : fncError,  
+        _waitMsg : waitMsg,
+        _showWaitScreen : showWaitScreen
+    };
+
 	if(showWaitScreen)
 		blockUI(waitMsg);
 
@@ -88,7 +104,8 @@ function getConection(controller, method, arguments, fncSuccess, async, dataType
  * @description [Load specific HTML View]
  * @param  {string} url [Url of the HTML]
  */
-function getPage(url,params){
+function getPage(url,params,conteiner){
+    conteiner = conteiner || "#page-content"
     $.ajax({
         type: "POST",
         url: url,
@@ -102,9 +119,9 @@ function getPage(url,params){
             }
             else{
                 connection.urlParams=params || {};
-                $("#page-content").hide(500,function(){                
-                    $("#page-content").html(response);
-                    $("#page-content").show(600);
+               $(conteiner).hide(500,function(){                
+                    $(conteiner).html(response);
+                    $(conteiner).show(600);
                 });
                 return;
             }
@@ -209,6 +226,15 @@ function getSession() {
  * @return      {string}                  [description]
  */
 function $uploadFile(controller,method,input,fnc){
+
+    last_connection_params = {
+        _isUploadFile : true,
+        _controller : controller,
+        _method : method,
+        _input : input,
+        _fnc : fnc
+    }
+
     var files = $(input).prop("files");
     if (files.length > 0) {
         if (window.FormData !== undefined) {
@@ -225,10 +251,10 @@ function $uploadFile(controller,method,input,fnc){
                 data: data,
                 success: function (response) {
                     var language = Language_General[Culture]; 
-                    switch (response.shStatus) {
+                    if($.isFunction(fnc))
+                        fnc(response);
+                    switch (response.shStatus) {                        
                         case OK_:
-                            if($.isFunction(fnc))
-                                fnc(response);
                             break;
                         case SESSION_EXPIRED_:
                             ShowMessageSessionExpired();

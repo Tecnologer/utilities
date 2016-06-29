@@ -17,11 +17,21 @@ const PASSWORD_DEFAULT_ = -10;
 const NO_FOUND_PROTOTYPE = -11;
 const NEED_CALCULATION_ = -12;
 const EXPENSES_NOTFOUND = -13;
-const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
+const NEODATA_RESOURCEEXISTS_OR_UNITORTYPENOTEXISTS = -14;
+const RESOURCES_INCORRECT_ID = -15;
+const RESOURCE_WITH_EXPENSE = -16;
+const BUDGET_LOWER_SPEND = -17;
+const EMPTY_GUID = "00000000-0000-0000-0000-000000000000"; 
+
+String.prototype.isEmpty = function ()
+{
+    return !this.match(/\S/);
+}
 
 //this functin require jquery.blockUI.js
 function blockUI(mensaje, spinColor, textColor) {
     mensaje = mensaje || Language_General[Culture].LOADING;
+
     //armamos un codigo html para representar el dialogo de cargando
     var html = "<div class='col-md-12 center'>" +
                     "<h3 class='header smaller lighter " + (textColor != null ? textColor : 'grey') + "'>" +
@@ -37,10 +47,13 @@ function blockUI(mensaje, spinColor, textColor) {
     if(mensaje!=undefined){
         var offset=$(".blockMsg").offset();
         var width=$(".blockMsg").width();
-        var swidth=$(document).width();
+        var swidth=$(window).width();
         offset.left=(swidth-width)/2;
         $(".blockMsg").offset(offset)
     }
+
+    $(".blockOverlay").css("z-index",1100);
+    $(".blockMsg").css("z-index",1111);
 }
 
 //desbloqueamos la pantalla
@@ -186,9 +199,7 @@ function drawChart(tag_selector, data)
             }
         });
     }
-    
 }
-
 
 function dialogconfirm(msj, functionYES, functionNOT)
 {
@@ -257,7 +268,15 @@ function dialogRegular2(tagSelector, title, pwidth, pheight) {
 * @functionOk {function} function that exec after you click OK 
 * @returns {void} el codigo de retorno 0
 */
-function ModalMessage(tagSelector, title, message, style, width, height, functionOk) {
+function ModalMessage(tagSelector, title, message, style, width, height, functionOk, labelButton) {
+    style = style || "success";
+    width = width || "auto";
+    height = height || "auto";
+    labelButton = labelButton || "OK";
+    functionOk = (typeof functionOk == 'function') ? functionOk : function() {
+                                     $( this ).dialog( "destroy" );
+                             }
+
     sHtml = "<div class='alert alert-block alert-" + style + " bigger-110'>" +
                                                 "<strong>" + message + "</strong></div>"
     var icon = "";
@@ -292,11 +311,9 @@ function ModalMessage(tagSelector, title, message, style, width, height, functio
         position: { my: "center", at: "center", of: window },//Posicionar el dialog en el centro
         buttons: [
                     {
-                        html: "<i class='icon-ok bigger-110'></i>&nbsp; OK",
+                        html: "<i class='icon-ok bigger-110'></i>&nbsp; "+ labelButton,
 								                "class" : "btn btn-primary btn-xs",
-						click: (typeof functionOk == 'function') ? functionOk : function() {
-                                     $( this ).dialog( "destroy" );
-                             }
+						click: functionOk
                     }
         ]
     });
@@ -845,6 +862,17 @@ function InitializeComponentsUtilities(arrayControls, arrayTypeControl) {
     });
 };
 
+function InitializeComponentsObjets(arrayControls) {
+    $.each(arrayControls, function (key, value) {
+        if (value.type == 'hidden') {
+            $("#" + value.control).val(EMPTY_GUID);
+        }
+        if (value.type == 'checkbox') {
+            $("#" + value.control).prop("checked", true);
+        }
+    });
+};
+
 function LoadLabelsUtilities(arrayControls, arrayTypeControl) {
     $.each(arrayControls, function (key, value) {
         $("#" + arrayControls[key]).text(arrayTypeControl[key]);
@@ -926,33 +954,79 @@ function creacionGridHelpersUtilities(divs, pager, grid_data, columnas, modelo) 
             var grid_selector = "#" + divs;
             var pager_selector = "#" + pager;
 
-            jQuery(grid_selector).jqGrid('clearGridData');
-            jQuery(grid_selector).setGridParam({ 'data': grid_data }).trigger("reloadGrid");
-
-            jQuery(grid_selector).jqGrid({
-                data: grid_data,
-                loadonce: true,
-                datatype: "local",
-                height: 'auto',
-                colNames: columnas,
-                colModel: modelo,
-                viewrecords: false,
-                rowNum: 10,
-                rowList: [5, 10, 20, 30],
-                altRows: true,
-                multiboxonly: true,
-                pager: pager_selector,
-                loadComplete: function () {
-                    var table = this;
-                },
-                onSelectRow: function (rowid) {
-                    $(this).closest('.ui-dialog-content').dialog('close');
-                },
-                autowidth: true
-                , autoheight: true
-            });
+            if ($(grid_selector)[0].grid) {
+                jQuery(grid_selector).jqGrid('clearGridData');
+                jQuery(grid_selector).setGridParam({ 'data': grid_data }).trigger("reloadGrid");
+            }
+            else {
+                jQuery(grid_selector).jqGrid({
+                    data: grid_data,
+                    loadonce: true,
+                    datatype: "local",
+                    height: 'auto',
+                    colNames: columnas,
+                    shrinkToFit: true,
+                    colModel: modelo,
+                    viewrecords: false,
+                    rowNum: 10,
+                    rowList: [5, 10, 20, 30],
+                    altRows: true,
+                    multiboxonly: true,
+                    pager: pager_selector,
+                    loadComplete: function () {
+                        var table = this;
+                    },
+                    onSelectRow: function (rowid) {
+                        $(this).closest('.ui-dialog-content').dialog('close');
+                    },
+                    autowidth: true,
+                    autoheight: true
+                });
+                updatePagerIcons();
+            }
         });
-        updatePagerIcons();
+
+    }
+};
+
+function ViewerReportsGrid(divs, pager, grid_data, columnas, modelo) {
+    if (grid_data.length > 0) {
+        jQuery(function ($) {
+            var grid_selector = "#" + divs;
+            var pager_selector = "#" + pager;
+
+            if ($(grid_selector)[0].grid) {
+                jQuery(grid_selector).jqGrid('clearGridData');
+                jQuery(grid_selector).setGridParam({ 'data': grid_data }).trigger("reloadGrid");
+            }
+            else {
+                jQuery(grid_selector).jqGrid({
+                    data: grid_data,
+                    loadonce: true,
+                    datatype: "local",
+                    height: 'auto',
+                    colNames: columnas,
+                    shrinkToFit: true,
+                    colModel: modelo,
+                    viewrecords: false,
+                    rowNum: 10,
+                    rowList: [5, 10, 20, 30],
+                    altRows: true,
+                    multiboxonly: true,
+                    pager: pager_selector,
+                    loadComplete: function () {
+                        var table = this;
+                    },
+                    onSelectRow: function (rowid) {
+                        
+                    },
+                    autowidth: true,
+                    autoheight: true
+                });
+                updatePagerIcons();
+            }
+        });
+
     }
 };
 
@@ -970,7 +1044,7 @@ function fileDownload(sUrl)
 }
 
 function RefreshSession(){
-    connection.invoke("MainMenu", "RefreshSession", {}, null);
+    connection.invoke("MainMenu", "RefreshSession", {}, null,true,null,null,null,false);
 }
 
 function WarningToast(sMessage) {
@@ -992,7 +1066,7 @@ function DangerToast(sMessage) {
 * @return      void*/
 function $loadLabels(language){
     language=language || LANGUAGE[Culture];
-    var labels=$("label,button>span").not("label[id=''],button>span[id='']");
+    var labels=$("label,button>span,legend, h1,span").not("label[id=''],button>span[id=''],legend[id=''], h1[id=''], span[id='']");
 
     for(var i=0, len=labels.length;i<len;i++){
         if(language[$(labels[i]).prop("id")])
@@ -1025,15 +1099,87 @@ function $loadPlaceholders(language){
     }
 };
  
-function $ruleFunctionsByProfile(unFunctionalityId){
+function $ruleFunctionsByProfile(unFunctionalityId, response){
+    if(window.isDevelopment){
+        $("#page-content").html(response);
+        moveScrollTop();
+        unblockUI();
+        return;
+    }
+    
     connection.invoke("ProfileFunctionalitiesActions","getConfigurationFuncActions_byProfile",{unFunctionalityId: unFunctionalityId},function(res){
-        if(res.shStatus==OK_){
-            for(var i in res.data){
-                if($("#"+res.data[i].nvControlId).get(0).nodeName=="BUTTON")
-                    $("#"+res.data[i].nvControlId).remove();
-                else
-                    $("#"+res.data[i].nvControlId).prop("disabled",true);
+        if(res.shStatus==OK_ || res.shStatus==NO_FOUND_RECORDS_){            
+            var buttons="";
+            var elements="";
+            var hasDualList=false;
+            var dualLists="";
+
+            if(res.data!=null){
+                for(var i in res.data){
+                    var element=$(response).find("#"+res.data[i].nvControlId).get(0);
+                    if(element && (element.nodeName=="BUTTON" || element.nodeName=="ACCO-BUTTON"))
+                        buttons+="#"+res.data[i].nvControlId+",";
+                        // $("#"+res.data[i].nvControlId).remove();
+                    else{
+                        if(element && element.nodeName=="SELECT" && $(response).find("#"+res.data[i].nvControlId).attr("multiple")){
+                            elements+="#bootstrap-duallistbox-nonselected-list_"+res.data[i].nvControlId+",#bootstrap-duallistbox-selected-list_"+res.data[i].nvControlId+",";
+                            buttons+=".moveall,.move,.removeall,.remove,";
+                            hasDualList=true;
+                        }
+
+                        elements+="#"+res.data[i].nvControlId+",";
+                    }
+                        // $("#"+res.data[i].nvControlId).prop("disabled",true);
+                }
+                
+                buttons = buttons.replace(/,$/,"");
+                elements = elements.replace(/,$/,"");
             }
+
+
+            $(response).find("button,acco-button").not(buttons).remove();
+            /*if(hasDualList)
+                dualLists=$(response).find(".bootstrap-duallistbox-container").find("input");*/
+            
+            //not(dualLists).not(elements+",.ui-jqgrid input,.ui-jqgrid select,.ui-jqgrid button")
+            $(response).find("input,select,textarea").not(elements).prop("disabled",true);
+            $("#page-content").html(response);
+            moveScrollTop();
+            /*console.log(buttons);
+            console.log(elements);*/
         }
     });
 }
+
+$(document).unbind('keydown').bind('keydown', function (event) {
+    var doPrevent = false;
+    if (event.keyCode === 8) {
+        var d = event.srcElement || event.target;
+        if ((d.tagName.toUpperCase() === 'INPUT' &&
+                (
+                    d.type.toUpperCase() === 'TEXT' ||
+                    d.type.toUpperCase() === 'URL' ||
+                    d.type.toUpperCase() === 'TEL' ||
+                    d.type.toUpperCase() === 'PASSWORD' ||
+                    d.type.toUpperCase() === 'FILE' ||
+                    d.type.toUpperCase() === 'SEARCH' ||
+                    d.type.toUpperCase() === 'EMAIL' ||
+                    d.type.toUpperCase() === 'NUMBER' ||
+                    d.type.toUpperCase() === 'TIME' ||
+                    d.type.toUpperCase() === 'DATE' ||
+                    d.type.toUpperCase() === 'WEEK' ||
+                    d.type.toUpperCase() === 'MONTH' ||
+                    d.type.toUpperCase() === 'DATETIME-LOCAL')
+            ) ||
+            d.tagName.toUpperCase() === 'TEXTAREA' ||
+            (d.tagName.toUpperCase() === 'DIV' && $(d).attr("contenteditable") !== undefined)) {
+            doPrevent = d.readOnly || d.disabled;
+        } else {
+            doPrevent = true;
+        }
+    }
+
+    if (doPrevent) {
+        event.preventDefault();
+    }
+});

@@ -6,6 +6,8 @@ Culture=Culture || "";
 function initCustomTags(){
 	initButtons();
 	initDatepicker();
+	initClearables();
+	initPasswordShow();
 }
 /**@author [Rey David Dominguez]
  * @date [09/20/2015]
@@ -100,7 +102,7 @@ function initDatepicker(){
 		var $required=$(dpSearch[i]).attr("required");
 
 		$(newDp).prop("id",$(dpSearch[i]).prop("id"));
-		$(newDp).prop("class","form-control input acco-datepicker"+$class.replace(/form-control input /ig,""));
+		$(newDp).prop("class","form-control input acco-datepicker "+$class.replace(/form-control input /ig,""));
 		if($onclick)
 			$(newDp).prop("onclick",$onclick);
 
@@ -123,8 +125,9 @@ function initDatepicker(){
 	        format: format,
 	        language: Culture,
 	        autoclose: $(dpSearch[i]).attr("autoclose")=="true" || $(dpSearch[i]).attr("autoclose")==undefined,
-	        clearbtn: $(dpSearch[i]).attr("clearbtn")=="true",
-	        todaybtn: $(dpSearch[i]).attr("todaybtn") == "true",
+	        clearBtn: $(dpSearch[i]).attr("clearbtn")=="true",
+	        todayBtn: $(dpSearch[i]).attr("todaybtn") == "true",
+	        todayHighlight: true,
 		    endDate: $(dpSearch[i]).attr("end-date") || ''
 	    });
 
@@ -153,3 +156,79 @@ function initDatepicker(){
 	    });
 	}
 }
+
+function initClearables() {
+	//if exists, remove previous icons, to prevent icons repeated
+    $(".ic-clearable").remove();
+    //get the all inputs in "main-content"
+    //Except:
+    //	With class "noClearable"
+    //	Inputs disabled, readonly or hidden
+    //	Inputs for datepicker
+    //	Inputs inside of jdGrid
+    var inputs = $('.main-content').find("input[type='text']").not(".noClearable,input[disabled],input[readonly],input:hidden,.acco-datepicker,.ui-jqgrid input[type='text']");
+
+    for (var i = 0, len = inputs.length; i < len; i++) {
+        var input = inputs[i];
+        $(input).bind("keyup cls", function() {
+            if ($(this).val() != '') {
+                $("#cl_" + $(this).prop("id")).removeClass('hide');
+                $("#cl_" + $(this).prop("id")).css("left", $(this).width() + "px");
+            } else
+                $("#cl_" + $(this).prop("id")).addClass('hide');
+        });
+
+        $("<i>").addClass('icon-remove hide ic-clearable').css({
+            width: "10px",
+            position: "absolute",
+            top: "10px",
+            cursor: "pointer",
+            color: "#99bbf2"
+        }).attr({
+            id: "cl_" + $(input).prop("id"),
+            parent: $(input).prop("id")
+        }).insertAfter(input).click(function() {
+            var input = "#" + $(this).attr("parent");
+
+            $(input).val("").focus();
+            $(this).addClass('hide');
+        });
+    }
+}
+
+function initPasswordShow() {
+    var inputs = $('.main-content').find("input[type='password']");
+
+    for (var i = 0, len = inputs.length; i < len; i++) {
+        var input = inputs[i];
+
+        $(input).bind("keyup cls", function() {
+            if ($(this).val() != '') {
+                $("#sh_" + $(this).prop("id")).removeClass('hide');
+                $("#sh_" + $(this).prop("id")).css("left", $(this).width() + "px");
+            } else
+                $("#sh_" + $(this).prop("id")).addClass('hide');
+        });
+
+        $("<i>").addClass('icon-eye-open hide').css({
+            width: "10px",
+            position: "absolute",
+            top: "10px",
+            cursor: "pointer"
+        }).attr({
+            id: "sh_" + $(input).prop("id"),
+            parent: $(input).prop("id")
+        }).insertAfter(input).mousedown(function() {
+            var input = "#" + $(this).attr("parent");
+            $(input).prop("type","text");
+        }).mouseup(function(){
+        	var input = "#" + $(this).attr("parent");
+            $(input).prop("type","password");
+        });
+    }
+}
+
+$(document).on("mousemove", function() {
+    $('.main-content').find("input").not(".noClearable,input[disabled],input[readonly],input:hidden,.acco-datepicker").trigger("cls");
+});
+

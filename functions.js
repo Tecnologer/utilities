@@ -2,7 +2,7 @@
 //                 DIALOG                 //
 ////////////////////////////////////////////
 window._dialog={
-    open: function(id,title, pwidth, pheight, buttons){
+    open: function(id,title, pwidth, pheight, buttons,fnc_onClose){
         pwidth=pwidth || "auto";
         pheight = pheight || "auto";
         buttons = buttons || [];
@@ -21,6 +21,11 @@ window._dialog={
             show: { duration: 400 },
             buttons : buttons,
             position: { my: "center", at: "center", of: window },//Posicionar el dialog en el centro
+            close: function( event, ui ) {
+                $("#" + id).dialog("destroy").addClass('hide');
+                if($.isFunction(fnc_onClose))
+                    fnc_onClose();
+            }
         });
         $('#'  +id).css('overflow', 'hidden');
 
@@ -71,7 +76,7 @@ window._dialog={
 //               JQGRID                   //
 ////////////////////////////////////////////
 window._jqGrid = {
-    create: $createGrid,
+	create: $createGrid,
     /**@Author [Rey David Dominguez]
      * @date [09/15/2015]
      * @description [Get data of row]
@@ -80,7 +85,7 @@ window._jqGrid = {
      * @return {Object}         */
     getRowData: function(idTable, idRow) {
         return $("#" + idTable).jqGrid('getRowData', idRow);
-    },
+	},
     /**@Author [Rey David Dominguez]
      * @date [09/15/2015]
      * @description [Clear data of grid]
@@ -88,8 +93,8 @@ window._jqGrid = {
      * @return {void}         */
     clearGridData: function(idTable) {
         $("#" + idTable).jqGrid('clearGridData');
-    },
-    addRowData: $addRowData,
+	},
+	addRowData: $addRowData,
     /**@Author [Rey David Dominguez]
      * @date [09/15/2015]
      * @description [Get list of rows ids]
@@ -97,7 +102,7 @@ window._jqGrid = {
      * @return {array}         */
     getDataIDs: function(idTable) {
         return $("#" + idTable).jqGrid("getDataIDs");
-    },
+	},
     /**@Author [Rey David Dominguez]
      * @date [09/21/2015]
      * @description [Get all data grid]
@@ -171,7 +176,8 @@ window._jqGrid = {
         var rowNum = idPager ? $("#" + idPager).find('[role="listbox"]').val() : 10;
         grid[0].p.search = fOptions.rules.length > 0;
         grid.jqGrid('setGridParam', {
-            rowNum: rowNum
+            rowNum: rowNum,
+             page: 1
         });
         if (grid[0].p.search)
             $.extend(grid[0].p.postData, {
@@ -179,10 +185,14 @@ window._jqGrid = {
             });
         else {
             delete grid[0].p.postData.filters;
-        }
+    }
 
         grid.trigger("reloadGrid");
-    }
+    },
+    setPage: function(idTable, page){
+        page=page || 1;
+        $("#"+idTable).trigger("reloadGrid", [{ page: page }]);
+}
 }
 //******************** jqGrid's functions ********************//
 /**
@@ -219,6 +229,7 @@ function $createGrid(idTable ,idPager, stTitle, data, columns, model, fncClick,f
             rowNum: pageConf.rowNum,
             rowList: pageConf.rowList,
             pager: pager_selector,
+            page: 1,
             altRows: true,
             multiselect: false,
             multiboxonly: true,
@@ -230,7 +241,7 @@ function $createGrid(idTable ,idPager, stTitle, data, columns, model, fncClick,f
             onSelectRow :  function(rowid) {
                 var row = $(this).jqGrid('getRowData', rowid);
                 if ($.isFunction(fncClick))
-                	fncClick(row);
+                	fncClick(row, rowid);
             },                    
             caption: stTitle,
             autowidth: true,
@@ -295,13 +306,46 @@ function $updatePagerIcons() {
 function $addRowData(idTable,index,dataRow){
 	index= index || 1;
     $("#"+idTable).jqGrid('addRowData', index, dataRow);
+    _jqGrid.setPage(idTable,1);
 }
 
 ////////////////////////////////////////////
 //              ALERTS                    //
 ////////////////////////////////////////////
 window._alert={
-    toast: toast
+    toast: toast,
+    error: function(msg, inputField){
+        if($(".gritter-error").length==0 || $(".gritter-error").find(".gritter-without-image").find("div").html()!=msg){
+            toast(Language_General[Culture].Error, msg, "red", 4000, LIGHT, RIGHT);
+            
+            if(inputField)
+                $(inputField).focus();
+        }
+    },
+    warning: function(msg, inputField){       
+        if($(".gritter-warning").length==0 || $(".gritter-warning").find(".gritter-without-image").find("div").html()!=msg){
+            toast(Language_General[Culture].lbl_warning, msg, "orange", 2000, LIGHT, RIGHT);
+            
+            if(inputField)
+                $(inputField).focus();
+        } 
+    },
+    notification: function(msg, inputField){       
+        if($(".gritter-warning").length==0 || $(".gritter-warning").find(".gritter-without-image").find("div").html()!=msg){
+            toast(Language_General[Culture].Notification, msg, "orange", 2000, LIGHT, RIGHT);
+            
+            if(inputField)
+                $(inputField).focus();
+        } 
+    },
+    success: function(msg, inputField){
+        if($(".gritter-success").length==0 || $(".gritter-success").find(".gritter-without-image").find("div").html()!=msg){
+            toast(Language_General[Culture].lbl_success, msg, "green", 1000, LIGHT, RIGHT);
+            
+            if(inputField)
+                $(inputField).focus();
+        }
+    }
 }
 
 //////////////////////////////////////////
@@ -357,6 +401,16 @@ window._filter={
             return sign+s + (j ? i.substr(0, j) + t : "") + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + t) + (fractionSize ? d + Math.abs(value - i).toFixed(fractionSize).slice(2) : "");
         }
         
+    },
+    /**
+     * @author [rey]
+     * @date        [04/19/2016]
+     * @description [Remove format from a number]
+     * @param       {String}        value        [Formated number]
+     * @return      {String}                     [Unformated number]*/
+    unformatNumber: function(value){
+        value= value || "";
+        return value.replace(/[^0-9.*]/g,"");
     }
 }
 /**@author [Rey David Dominguez]
@@ -371,6 +425,62 @@ function getZeros(count){
     return format;
 }
 
+/**@author [carlos]
+ * @description [get cursor index]
+ * @param  {string}  [element id]
+ * @return {int}       [index]*/
+function doGetCaretPosition (target) {
+
+      // Initialize
+      var iCaretPos = 0;
+
+      // IE Support
+      if (document.selection) {
+
+        // Set focus on the element
+        target.focus();
+
+        // To get cursor position, get empty selection range
+        var oSel = document.selection.createRange();
+
+        // Move selection start to 0 position
+        oSel.moveStart('character', -target.value.length);
+
+        // The caret position is selection length
+        iCaretPos = oSel.text.length;
+      }
+
+      // Firefox support
+      else if (target.selectionStart || target.selectionStart == '0')
+        iCaretPos = target.selectionStart;
+
+      // Return results
+      return iCaretPos;
+    }
+
+/**@author [carlos]
+ * @description [set cursor index]
+ * @param  {string}  [element id]
+ * @param  {int}  [index]
+ * @return {void} */
+function setCaretPosition(elem, caretPos) {
+        if(elem != null) {
+            if(elem.createTextRange) {
+                var range = elem.createTextRange();
+                range.move('character', caretPos);
+                range.select();
+            }
+            else {
+                if(elem.selectionStart) {
+                    elem.focus();
+                    elem.setSelectionRange(caretPos, caretPos);
+                }
+                else
+                    elem.focus();
+            }
+        }
+}
+
 //////////////
 //KeyEvents //
 //////////////
@@ -383,6 +493,44 @@ const _keyEvents={
         if (!(specialChars.indexOf(e.which) > -1 || (e.which >= 65 && e.which <= 90 || e.which >= 97 && e.which <= 122)) && e.which!=46 && !(e.which>=48 && e.which<=57)) {//46 is a dot
             e.preventDefault();
         }
+    }, 
+    /**@author [carlos]
+     * @description [allow only money format used in accopro (18 integer, 6 decimals) (Only for keypress event)]
+     * @return {void} */
+    moneyFormat : function(event)
+    {
+            var key = event.which || event.keyCode;
+
+            var indexCursor = doGetCaretPosition(this);
+
+            if($.isNumeric(String.fromCharCode(key)))
+            {
+                var integerPart = "";
+
+                var decimalPart = "";
+
+                var currentvalue = $(this).val().substr(0, indexCursor) + String.fromCharCode(key) + $(this).val().substr(indexCursor);
+                
+                var sp =currentvalue.split(".");
+                
+                if(sp.length > 1){
+                    integerPart = sp[0]; 
+                    decimalPart = sp[1];
+                }
+                else{
+                    integerPart = currentvalue;
+                }
+                
+                if(!(integerPart.length > 18 || decimalPart.length > 2))
+                    $(event.currentTarget).val(currentvalue.replace(/^([0-9]{1,18}\.?[0-9]{0,2}).*/g, "$1"));                     
+                
+                if(integerPart.length < 18 || (decimalPart.length > 0 && decimalPart.length < 2))
+                    setCaretPosition(this, indexCursor + 1);
+                else
+                    setCaretPosition(this, indexCursor);
+
+                event.preventDefault();
+            }
     }
 };
 
@@ -429,10 +577,10 @@ const _date={
      * @param {Datetime} date     [Is an expression that can be resolved to a date]
      * @return {Datetime}*/
     firstDayMonth: function(date){
-        var date = date || (new Date());
+        date = date || (new Date());
         var day = new Date(date.getFullYear(), date.getMonth(), 1);
         return day;
-        var lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        //var lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
     },
     /**@author [Rey David Dominguez]
      * @description [Get date corresponding to the last day of the month of the date]
