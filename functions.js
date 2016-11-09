@@ -1,5 +1,5 @@
 ////////////////////////////////////////////
-//                 DIALOG                 //
+//    /            DIALOG                 //
 ////////////////////////////////////////////
 window._dialog={
     open: function(id,title, pwidth, pheight, buttons,fnc_onClose){
@@ -60,17 +60,44 @@ window._dialog={
      * @return {void}         */
     confirm: function(msj,fncTrue, fncFalse){
         bootbox.confirm(msj, function(result) {
-        if(result) {
-            if($.isFunction(fncTrue))
-                fncTrue();
+            if(result) {
+                if($.isFunction(fncTrue))
+                    fncTrue();
+            }
+            else
+            {
+                if($.isFunction(fncFalse))
+                    fncFalse();
+            }
+        });
+    },
+    previewPDF: function(src, title, name){
+
+        if(!src.match(/^\.\.\/|\\.*/i))
+            src = "data:application/pdf;base64," + src;
+
+        var sHtml = $("<iframe>").attr({
+            "src": src,
+            "width": "100%",
+            "height": "100%",
+            "download": name,
+            "frameborder": "0"
+        });
+
+        if(!$("#acco-modal-pdf").length){
+            var modal = $("<div>").attr({
+                id: "acco-modal-pdf",
+                class: "row hide"
+            });
+
+            $("body").append(modal);
         }
-        else
-        {
-            if($.isFunction(fncFalse))
-                fncFalse();
-        }
-    });
-    }	
+
+        $("#acco-modal-pdf").empty();
+        $("#acco-modal-pdf").html(sHtml);
+
+        _dialog.open("acco-modal-pdf", title, $(window).width() * .70, $(window).height());
+    }
 };
 ////////////////////////////////////////////
 //               JQGRID                   //
@@ -213,7 +240,7 @@ window._jqGrid = {
 function $createGrid(idTable ,idPager, stTitle, data, columns, model, fncClick,fncComplete,viewrecords, pageConf){
         var grid_selector = "#" + idTable;
         var pager_selector = idPager?"#" + idPager:'';
-        viewrecords = viewrecords || true;
+        viewrecords = viewrecords==undefined?true:viewrecords;
         pageConf = pageConf || {};
         pageConf.rowList = pageConf.rowList || [5, 10, 20, 30];
         pageConf.rowNum = pageConf.rowNum || 5;

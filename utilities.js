@@ -23,6 +23,17 @@ const RESOURCE_WITH_EXPENSE = -16;
 const BUDGET_LOWER_SPEND = -17;
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000"; 
 
+
+/** Constants to create PDF reports from HTML */
+//Page size
+const LETTER =1;
+const A4 = 2;
+const A5 = 3;
+const A3 = 4;
+//Page orientation
+const PORTRAIT = 1;
+const LANDSCAPE = 2;
+
 String.prototype.isEmpty = function ()
 {
     return !this.match(/\S/);
@@ -345,7 +356,7 @@ function createGrid(table_id ,div_pager_id, title, /*grid_data,*/ columns, model
             multiboxonly: true,
 
             loadComplete: function () {
-                updatePagerIcons();
+                
             },
             onSelectRow :  function(rowid) {
                 var row = $(this).jqGrid('getRowData', rowid);
@@ -358,7 +369,7 @@ function createGrid(table_id ,div_pager_id, title, /*grid_data,*/ columns, model
             autowidth: true,
             title: title
         });
-
+        updatePagerIcons();
         
     
 }

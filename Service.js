@@ -11,11 +11,13 @@ var last_connection_params = {};
 /** @type {Object} [Object Singleton for access to functions of Service] */
 window.connection = {
     invoke: getConection,
+    invokeUrl: getConectionUrl,
     loadPage: getPage,
     getUrlParams: getUrlParams,
     urlParams: {},
     getSession: getSession,
     uploadFile: $uploadFile,
+    uploadCustomFile : $uploadCustomFile,
     fillCombo: $fillCombo
 };
 
@@ -281,6 +283,73 @@ function $uploadFile(controller,method,input,fnc){
         }
     }
 }
+
+/**
+ * @author [carlos]
+ * @date        [10/26/2016]
+ * @description [$uploadCustomFile description]
+ * @param       {string}     controller   [description]
+ * @param       {string}     method       [description]
+ * @param       {object}     formData     [description]
+ * @param       {Function}   fnc          [description]
+ * @return      {string}                  [description]
+ */
+function $uploadCustomFile(controller,method,formData,fnc)
+{
+    last_connection_params = {
+        _isCustomUploadFile : true,
+        _controller : controller,
+        _method : method,
+        _formData : formData,
+        _fnc : fnc
+    }
+
+    if (window.FormData !== undefined) {
+
+        $.ajax({
+            type: "POST",
+            url: '../'+controller+'/'+method,
+            contentType: false,
+            processData: false,
+            data: formData,
+            async: true,
+            beforeSend : function(){
+                blockUI();
+            },
+            success: function (response) {
+                unblockUI();
+                var language = Language_General[Culture]; 
+                if($.isFunction(fnc))
+                    fnc(response);
+                switch (response.shStatus) {                        
+                    case OK_:
+                        break;
+                    case SESSION_EXPIRED_:
+                        ShowMessageSessionExpired();
+                        break;
+                    case ERR_:
+                        toast(language.Error, response.sDescription, "red", 10000, LIGHT, RIGHT);
+                        break;
+                    case PROJECT_NO_SETTED_:
+                        toast(language.Error, language.PROJECT_NO_SETTED_, "red", 10000, LIGHT, RIGHT);
+                        break;
+                    default:
+                        toast(language.Error, language.teamSystem, "red", 10000, LIGHT, RIGHT);
+                    break;
+                }
+            },
+            error: function (xhr, status, p3, p4) {
+                unblockUI();
+                var err = "Error " + " " + status + " " + p3 + " " + p4;
+                if (xhr.responseText && xhr.responseText[0] == "{")
+                    err = JSON.parse(xhr.responseText).Message;
+            }
+        });
+    } else {
+        alert("This browser doesn't support HTML5 file uploads!");
+    }
+    
+}
 /**
  * @author [rey]
  * @date        [10/22/2015]
@@ -311,3 +380,66 @@ function $fillCombo(controller,method,idSelect,value,display,defValue,defDisplay
         $('#' + idSelect).html(sHtml);
     });
 }
+/**
+ * @author [Rey David Dominguez]
+ * @date [06-Sept-2015]
+ * @description [Call method on the controller via ajax]
+ * @param  {string}   controller    [URL to method ]
+ * @param  {json}     arguments     [Arguments of the method]
+ * @param  {function} fncSuccess    [Function to execute when server response.]
+ * @param  {boolean}  async         [Flag to indicate if is asynchronous or not]
+ * @param  {string}   dataType      [Datatype of response]
+ * @param  {function} fncError      [Function to execute when server don't response.]
+ */
+function getConectionUrl(url, arguments, fncSuccess, _async, dataType, fncError, waitMsg,showWaitScreen) {
+    //init arguments
+    _async = _async == undefined ? true : _async;
+    showWaitScreen = showWaitScreen == undefined ? true : showWaitScreen;
+    arguments = arguments || {};
+    dataType = dataType || 'json';
+    if(showWaitScreen)
+        blockUI(waitMsg);
+
+    args = JSON.stringify(arguments);
+    $.ajax({
+        type: "POST",
+        url: url,
+        async: _async,
+        data: args,
+        contentType: "application/json; charset=utf-8",
+        dataType: dataType,
+        success: function(response) {
+            var language = Language_General[Culture]; 
+            switch (response.shStatus) {
+                case OK_:                   
+                case NO_FOUND_RECORDS_:
+                    if ($.isFunction(fncSuccess))
+                        fncSuccess(response);
+                    break;
+                case SESSION_EXPIRED_:
+                    //toast(language.Error, language.SESSION_EXPIRED_, "red", 10000, LIGHT, RIGHT);
+                    ShowMessageSessionExpired();
+                    break;
+                case ERR_:
+                    toast(language.Error, response.sDescription, "red", 10000, LIGHT, RIGHT);
+                    break;
+                case PROJECT_NO_SETTED_:
+                    toast(language.Error, language.PROJECT_NO_SETTED_, "red", 10000, LIGHT, RIGHT);
+                    break;
+                default:
+                    toast(language.Error, language.teamSystem, "red", 10000, LIGHT, RIGHT);
+                break;
+            }
+            if(showWaitScreen)
+                unblockUI();
+        },
+        error: function(xhr, status, err) {
+            if (err == 'Not Found') {
+                LoadPageNoFound();
+            }
+            unblockUI();
+            if($.isFunction(fncError))
+                fncError(xhr, status, err);
+        }
+    });
+};

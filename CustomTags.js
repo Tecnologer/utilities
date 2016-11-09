@@ -8,6 +8,7 @@ function initCustomTags(){
 	initDatepicker();
 	initClearables();
 	initPasswordShow();
+	// initToogleButtons_Group();
 }
 /**@author [Rey David Dominguez]
  * @date [09/20/2015]
@@ -128,7 +129,8 @@ function initDatepicker(){
 	        clearBtn: $(dpSearch[i]).attr("clearbtn")=="true",
 	        todayBtn: $(dpSearch[i]).attr("todaybtn") == "true",
 	        todayHighlight: true,
-		    endDate: $(dpSearch[i]).attr("end-date") || ''
+	        endDate: $(dpSearch[i]).attr("end-date") || '',
+	        startDate: $(dpSearch[i]).attr("start-date") || ''
 	    });
 
 		var newSpan=$('<span class="input-group-btn"></span>');
@@ -170,29 +172,32 @@ function initClearables() {
 
     for (var i = 0, len = inputs.length; i < len; i++) {
         var input = inputs[i];
-        $(input).bind("keyup cls", function() {
-            if ($(this).val() != '') {
-                $("#cl_" + $(this).prop("id")).removeClass('hide');
-                $("#cl_" + $(this).prop("id")).css("left", $(this).width() + "px");
-            } else
-                $("#cl_" + $(this).prop("id")).addClass('hide');
-        });
 
-        $("<i>").addClass('icon-remove hide ic-clearable').css({
-            width: "10px",
-            position: "absolute",
-            top: "10px",
-            cursor: "pointer",
-            color: "#99bbf2"
-        }).attr({
-            id: "cl_" + $(input).prop("id"),
-            parent: $(input).prop("id")
-        }).insertAfter(input).click(function() {
-            var input = "#" + $(this).attr("parent");
+        if(!$(input).parents(".input-icon").length){
+	        $(input).bind("keyup cls", function() {
+	            if ($(this).val() != '') {
+	                $("#cl_" + $(this).prop("id")).removeClass('hide');
+	                $("#cl_" + $(this).prop("id")).css("left", $(this).width() + "px");
+	            } else
+	                $("#cl_" + $(this).prop("id")).addClass('hide');
+	        });
 
-            $(input).val("").focus();
-            $(this).addClass('hide');
-        });
+	        $("<i>").addClass('icon-remove hide ic-clearable').css({
+	            width: "10px",
+	            position: "absolute",
+	            top: "10px",
+	            cursor: "pointer",
+	            color: "#99bbf2"
+	        }).attr({
+	            id: "cl_" + $(input).prop("id"),
+	            parent: $(input).prop("id")
+	        }).insertAfter(input).click(function() {
+	            var input = "#" + $(this).attr("parent");
+
+	            $(input).val("").focus();
+	            $(this).addClass('hide');
+	        });
+	    }
     }
 }
 
@@ -202,30 +207,43 @@ function initPasswordShow() {
     for (var i = 0, len = inputs.length; i < len; i++) {
         var input = inputs[i];
 
-        $(input).bind("keyup cls", function() {
-            if ($(this).val() != '') {
-                $("#sh_" + $(this).prop("id")).removeClass('hide');
-                $("#sh_" + $(this).prop("id")).css("left", $(this).width() + "px");
-            } else
-                $("#sh_" + $(this).prop("id")).addClass('hide');
-        });
+        if(!$(input).parents(".input-icon").length){
+	        $(input).bind("keyup cls", function() {
+	            if ($(this).val() != '') {
+	                $("#sh_" + $(this).prop("id")).removeClass('hide');
+	                $("#sh_" + $(this).prop("id")).css("left", $(this).width() + "px");
+	            } else
+	                $("#sh_" + $(this).prop("id")).addClass('hide');
+	        });
 
-        $("<i>").addClass('icon-eye-open hide').css({
-            width: "10px",
-            position: "absolute",
-            top: "10px",
-            cursor: "pointer"
-        }).attr({
-            id: "sh_" + $(input).prop("id"),
-            parent: $(input).prop("id")
-        }).insertAfter(input).mousedown(function() {
-            var input = "#" + $(this).attr("parent");
-            $(input).prop("type","text");
-        }).mouseup(function(){
-        	var input = "#" + $(this).attr("parent");
-            $(input).prop("type","password");
-        });
+	        $("<i>").addClass('icon-eye-open hide').css({
+	            width: "10px",
+	            position: "absolute",
+	            top: "10px",
+	            cursor: "pointer"
+	        }).attr({
+	            id: "sh_" + $(input).prop("id"),
+	            parent: $(input).prop("id")
+	        }).insertAfter(input).mousedown(function() {
+	            var input = "#" + $(this).attr("parent");
+	            $(input).prop("type","text");
+	        }).mouseup(function(){
+	        	var input = "#" + $(this).attr("parent");
+	            $(input).prop("type","password");
+	        });
+	    }
     }
+}
+
+function initToogleButtons_Group(){
+	var buttons = $('.main-content').find("[data-toggle]").not("[data-toggle='']");
+
+	for (var i = 0, len = buttons.length; i < len; i++) {
+		$(buttons[i]).click(function(){
+			var name = $(this).prop("name");
+			$("[data-toggle][name='"+name+"']").not(this).removeClass('active');
+		});
+	}
 }
 
 $(document).on("mousemove", function() {
